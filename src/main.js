@@ -20,9 +20,19 @@ let config = {
         pixelArt: true  // prevent pixel art from getting blurred when scaled
     },
     fps: { forceSetTimeOut: true, target: 60 },   // ensure consistent timing across machines
-    width: 800,
-    height: 600,
-    scene: [SingleBullet, ArrayBullet, FixedArrayBullet, GroupBullet, ClassBullet, ArrayBoom]
+    width: 1200,
+    height: 1000,
+    scene: [
+        MainMenu, 
+        Level_1,
+        EndScene,
+        SingleBullet, 
+        ArrayBullet, 
+        FixedArrayBullet, 
+        GroupBullet, 
+        ClassBullet, 
+        ArrayBoom
+    ]
 }
 
 
