@@ -25,6 +25,7 @@ let config = {
     scene: [
         MainMenu, 
         Level_1,
+        Level_2,
         EndScene,
         SingleBullet, 
         ArrayBullet, 

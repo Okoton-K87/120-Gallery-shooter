@@ -1,8 +1,8 @@
-class Level_1 extends Phaser.Scene {
+class Level_2 extends Phaser.Scene {
     constructor() {
-        super("level1");
+        super("level2");
         this.my = {sprite: {}, text: {}};
-        this.attackSpeed = 500; // Attack speed in milliseconds
+        this.attackSpeed = 250; // Attack speed in milliseconds
         this.lastFired = 0; // When the last bullet was fired
         this.myScore = 0; // Initialize score
         this.enemySpawnTimer = 0;
@@ -14,8 +14,8 @@ class Level_1 extends Phaser.Scene {
         this.load.setPath("./assets/");
         this.load.image("player", "playerShip1_green.png");
         this.load.image("laserG2", "laserGreen02.png");
-        this.load.image("enemyB1", "enemyBlack1.png");
-        this.load.image("laserR12", "laserRed05.png");
+        this.load.image("enemyufo", "ufoRed.png");
+        this.load.image("laserR09", "laserRed09.png");
          // For animation
          this.load.image("whitePuff00", "laserGreen01.png");
          this.load.image("whitePuff01", "laserGreen14.png");
@@ -36,7 +36,7 @@ class Level_1 extends Phaser.Scene {
         this.enemyLasers = [];
     
         // this.levelText = this.add.text(this.cameras.main.width / 2, this.cameras.main.height / 4, 'LEVEL 1', { font: '64px Arial', fill: '#FFFFFF' }).setOrigin(0.5);
-        this.levelText = this.add.text(this.cameras.main.width / 2, this.cameras.main.height / 4, 'LEVEL 1', { font: '64px Arial', fill: '#FFFFFF' }).setOrigin(0.5);
+        this.levelText = this.add.text(this.cameras.main.width / 2, this.cameras.main.height / 4, 'LEVEL 2', { font: '64px Arial', fill: '#FFFFFF' }).setOrigin(0.5);
         this.time.delayedCall(1000, () => {
             this.levelText.setVisible(false);
         }, [], this);
@@ -54,23 +54,44 @@ class Level_1 extends Phaser.Scene {
     spawnEnemy() {
         let x = Phaser.Math.Between(50, this.cameras.main.width - 50);
         let startY = -50; // Start above the screen
-        let stopY = Phaser.Math.Between(50, this.cameras.main.height / 2 - 50); // Stop at a random Y above half the screen
-        let enemy = this.add.sprite(x, startY, "enemyB1").setScale(0.5);
-        this.enemyGroup.push(enemy);
-        this.scheduleEnemyFire(enemy);
+        let stopY = Phaser.Math.Between(50, this.cameras.main.height / 2 - 50);
     
-        // Animate enemy flying in
+        // Use 'follower' to ensure the sprite can follow a path
+        let enemy = new Phaser.GameObjects.PathFollower(this, null, x, startY, "enemyufo");
+        enemy.setScale(0.5);
+        this.add.existing(enemy); // Add to scene
+        this.enemyGroup.push(enemy);
+    
         this.tweens.add({
             targets: enemy,
             y: stopY,
             ease: 'Power1',
             duration: 2000,
             onComplete: () => {
-                this.tweenEnemyHorizontal(enemy);
+                this.tweenEnemySPath(enemy, stopY);
             }
         });
-    }         
-
+        this.scheduleEnemyFire(enemy);
+    }
+    
+    tweenEnemySPath(enemy, stopY) {
+        let path = new Phaser.Curves.Path(enemy.x, stopY);
+        path.splineTo([
+            { x: enemy.x + 100, y: stopY + 100 },
+            { x: enemy.x - 100, y: stopY + 200 },
+            { x: enemy.x + 100, y: stopY + 300 },
+            { x: enemy.x - 100, y: stopY + 400 }
+        ]);
+    
+        enemy.setPath(path, true);
+        enemy.startFollow({
+            duration: 8000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+    }
+    
     setupAnimations() {
         this.anims.create({
             key: "puff",
@@ -94,58 +115,42 @@ class Level_1 extends Phaser.Scene {
         this.bulletSpeed = 10;
     }
 
-    // spawnEnemies() {
-    //     let numEnemies = Phaser.Math.Between(1, 2);
-    //     for (let i = 0; i < numEnemies; i++) {
-    //         let x = Phaser.Math.Between(0, this.cameras.main.width);
-    //         let enemy = this.add.sprite(x, -50, "enemyB1").setScale(0.5);
-    //         this.enemyGroup.push(enemy);
-    //         this.tweenEnemy(enemy);
-    //         this.scheduleEnemyFire(enemy);
-    //     }
-    // }
-
     scheduleEnemyFire(enemy) {
         this.time.addEvent({
-            delay: Phaser.Math.Between(1000, 3000), // Random firing delay
+            delay: 5000,
             callback: () => {
                 if (enemy.active) {
-                    let laser = this.add.sprite(enemy.x, enemy.y, "laserR12").setScale(0.5);
-                    // laser.tint = 0xff0000; // Color the enemy laser red for clarity
-                    this.enemyLasers.push(laser);
+                    this.shootLasersFromEnemy(enemy);
                 }
             },
             callbackScope: this,
             loop: true
         });
-    }    
-
-    tweenEnemy(enemy) {
-        // Create a looping tween for horizontal movement
-        const tweenX = this.tweens.add({
-            targets: enemy,
-            x: { from: enemy.x, to: enemy.x + Phaser.Math.Between(100, 200) },
-            ease: 'Sine.easeInOut',
-            duration: 3000,
-            yoyo: true,
-            repeat: -1
-        });
-    }
-    
-    tweenEnemyHorizontal(enemy) {
-        // Create a looping tween for more extensive horizontal movement
-        const distance = Phaser.Math.Between(100, 300); // Longer movement
-        const duration = Phaser.Math.Between(3000, 5000); // Longer duration for movement
-    
-        this.tweens.add({
-            targets: enemy,
-            x: { from: enemy.x, to: enemy.x + distance },
-            ease: 'Sine.easeInOut',
-            duration: duration,
-            yoyo: true,
-            repeat: -1
-        });
     }       
+
+    shootLasersFromEnemy(enemy) {
+        const directions = [
+            { x: 1, y: 0 }, { x: -1, y: 0 }, // Right, Left
+            { x: 0, y: 1 }, { x: 0, y: -1 }, // Down, Up
+            { x: 1, y: 1 }, { x: -1, y: 1 }, // Down-right, Down-left
+            { x: 1, y: -1 }, { x: -1, y: -1 } // Up-right, Up-left
+        ];
+    
+        directions.forEach(direction => {
+            let laser = this.add.sprite(enemy.x, enemy.y, "laserR09").setScale(0.5);
+            this.enemyLasers.push(laser);
+            this.tweens.add({
+                targets: laser,
+                x: laser.x + direction.x * 300, // Adjust length as needed
+                y: laser.y + direction.y * 300,
+                ease: 'Linear',
+                duration: 1500,
+                onComplete: () => {
+                    laser.destroy();
+                }
+            });
+        });
+    }          
 
     update(time, delta) {
         this.handlePlayerMovement();
@@ -262,8 +267,8 @@ class Level_1 extends Phaser.Scene {
         my.text.score.setText("Score: " + this.myScore);
         console.log("added");
     
-        if (this.myScore === 10) {
-            this.scene.start('level2');
+        if (this.myScore === 100) {
+            this.scene.start('EndScene');
         }
     }
     
