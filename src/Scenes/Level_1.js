@@ -262,7 +262,7 @@ class Level_1 extends Phaser.Scene {
         my.text.score.setText("Score: " + this.myScore);
         console.log("added");
     
-        if (this.myScore === 10) {
+        if (this.myScore === 100) {
             this.scene.start('level2');
         }
     }
